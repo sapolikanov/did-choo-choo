@@ -1,11 +1,12 @@
 project:
-  title: "Project Title"
+  title: "Railroad development and population growth in the Russian Empire"
   output-dir: _products
   execute-dir: project
   pre-render: 
     - utilities/check_packages.R      # install required packages
     - utilities/remove_artifacts.ts   # remove previously constructed files
   render:
+    - analysis/data_building/data_building.qmd
     # specify render ordering
 
 author:

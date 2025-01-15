@@ -1,0 +1,78 @@
+---
+title: "Data Building"
+format: pdf
+---
+
+```{r}
+#| label: setup
+
+# Load libraries and functions
+source(here::here("utilities", "check_packages.R"))
+source(here::here("utilities", "functions.R"))
+```
+
+```{r}
+#| label: load_data
+
+rail <- read_sf(here("data", "data_raw", "rail", "rail_1917.shp"))
+census1897 <- read_sf(here("data", "data_raw", "census", "1897RussianEmpire.shp"))
+census1926 <- read_sf(here("data", "data_raw", "census", "1926SovietUnion.shp"))
+tn <- read_dta(here("data", "data_raw", "rayons_1989_voting9508_may_2023.dta"))
+panel_long <- read_xlsx(here("data", "data_raw", "panel_long.xlsx"))
+
+ag <- read_dta(here("data", "data_raw", "AG_Corp_RuscorpMasterFile_Cleaned.dta"))
+ag2 <- read_dta(here("data", "data_raw", "AG_Corp_Prod_Database.dta"))
+ag3 <- read_dta(here("data", "data_raw", "ManuscriptsAnalysis.dta"))
+
+## map of world
+world <- ne_countries(scale = "medium", returnclass = "sf")
+```
+
+
+
+```{r}
+#| label: panel_drop_na
+
+panel_clean <- panel_long |> 
+  group_by(name_ru, region) |> 
+  filter(all(!is.na(pop))) |> 
+  st_as_sf(coords = c("geo_lon", "geo_lat")) |> 
+  st_set_crs(4284) |> 
+  st_transform(st_crs(rail))
+  
+ggplot() +
+  geom_sf(data = world) +
+  geom_sf(data = panel_clean, size = 0.3, color = "blue") +
+  geom_sf(data = rail, linewidth = 0.3, color = "red") +
+  theme_void() +
+  coord_sf(ylim = c(35, 75),
+           xlim = c(20, 180))
+```
+
+```{r}
+#| label: merge
+
+rail_1910 <- rail |> 
+  filter(year >= 1910) |> 
+  st_buffer(dist = 10)
+
+ggplot() +
+  geom_sf(data = world) +
+  geom_sf(data = panel_clean, size = 0.3, color = "blue") +
+  geom_sf(data = rail_1910, linewidth = 0.3, color = "red") +
+  theme_void() +
+  coord_sf(ylim = c(35, 75),
+           xlim = c(20, 180))
+
+data <- st_join(panel_clean, rail_1910, join = st_intersects, 
+                dist = 1000, left = F)
+```
+
+
+```{r}
+
+data <- ag |> 
+  group_by(ENGNAME) |> 
+  mutate(n_years = n())
+```
+
